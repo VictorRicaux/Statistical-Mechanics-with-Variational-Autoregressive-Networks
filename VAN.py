@@ -13,8 +13,6 @@ class MaskedLinear(nn.Linear):
     def forward(self, input):
         return nn.functional.linear(input, self.weight * self.mask, self.bias)
     
-
-
 class VAN(nn.Module):
     def __init__(self, input_size, activation=torch.sigmoid):
         super(VAN, self).__init__() #initialisation obligatoire
@@ -35,4 +33,8 @@ class VAN(nn.Module):
     def forward(self, x):
         x = self.fc1(x)
         x = self.activation(x)
+        # à cette ligne on a multiplié x par la matrice de masque (triangulaire inférieure), puis appliqué la fonction d'activation
+        # donc la première coordonnée de x vaut activation(0) (normal, s^_1 ne dépend de personne)
+        # il faut donc ajouter 0.5 à la première coordonnée pour montrer qu'elle vaut 0 et 1 avec proba 0.5
+        x[0] = 0.5
         return x
