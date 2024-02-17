@@ -37,6 +37,9 @@ class VAN(nn.Module):
 
 
         self.fc1 = MaskedLinear(input_size, input_size, mask=M) 
+        for param in self.parameters():
+            param.requires_grad = True
+
 
 
     def forward(self, x):
@@ -45,20 +48,15 @@ class VAN(nn.Module):
         # à cette ligne on a multiplié x par la matrice de masque (triangulaire inférieure), puis appliqué la fonction d'activation
         # donc la première coordonnée de x vaut activation(0) (normal, s^_1 ne dépend de personne)
         # il faut donc ajouter 0.5 à la première coordonnée pour montrer qu'elle vaut 0 et 1 avec proba 0.5
-        x[0] = 0.5 
+        x=x.clone()
+        x[0] += 0.5 
         return x
 
 
 
 def Kulback_Leibler(q,p): # p et q sont des listes de probas d'observation pour le même s
-    # ex : p=[0.5, 0.5, 0] et q=[0.3, 0.3, 0.4]
-    for i in range(len(p)):
-        if p[i] == 0:
-            p[i] = 1e-10
-    result = 0 
-    for i in range(len(p)):
-        result += np.log(q[i]/p[i])
-    return result  
+    # on n'a pas somme des p_i = 1  ni somme des q_i = 1 car on peut avoir plusieurs fois le même s ou à l'inverse ne pas les avoir tous
+    return  torch.sum(torch.log(q/p))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
 
 
 def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
@@ -87,29 +85,34 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
 
             for j in range(1, model.input_size):
                 y_pred=model(train_set[i])
-                p_j= y_pred[j] # c'est p(s_j|s_{i<j})
-                train_set[i][j] = torch.tensor(float(np.random.binomial(1, p_j.detach().numpy()))) # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
+                p_j = y_pred[j] # c'est p(s_j|s_{i<j})
+                if p_j > 1 or p_j < 0:
+                    p_j = torch.sigmoid(p_j)
+                if p_j!=p_j:
+                    p_j=torch.tensor(0.5)
+                # train_set[i][j] = torch.tensor(float(np.random.binomial(1, p_j.detach().numpy()))) # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
+                train_set[i][j] = torch.bernoulli(p_j).item() # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
+        y_train=torch.tensor([p_obj(s) for s in train_set], requires_grad=True)
         
-        y_train=torch.tensor([p_obj(s) for s in train_set])
         # on a notre train set pour cette époque
 
 
         listes_de_probas_conditionelles=model(train_set) # on récupère les probas conditionelles, il faut les multiplier pour avoir les probas tout court
-        q_theta_predit=[]
-        for proba_conditionelle in listes_de_probas_conditionelles:
-            res=1
+
+        q_theta_predit=torch.zeros(len(listes_de_probas_conditionelles))
+        for j, proba_conditionelle in enumerate(listes_de_probas_conditionelles):
+            res = 1.0
             for i in proba_conditionelle:
-                res*=i
-            q_theta_predit.append(res)
+                res *= i
+            q_theta_predit[j] = res
         # c'est bon on a les probas, on peut appliquer DKL
-        loss = Kulback_Leibler(torch.tensor(q_theta_predit), y_train)
-        loss.requires_grad = True   # j'ai du ajouter cette ligne pour que ça marche
+        loss = Kulback_Leibler(q_theta_predit, y_train)
         loss.backward()
+        
         optimizer.step()
         losses.append(loss.item())
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss.item()}')
+           
     return losses
-
-
 
