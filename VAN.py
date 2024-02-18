@@ -86,11 +86,12 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
             for j in range(1, model.input_size):
                 y_pred=model(train_set[i])
                 p_j = y_pred[j] # c'est p(s_j|s_{i<j})
-                if p_j > 1 or p_j < 0:
+                if p_j > 1 or p_j < 0: # c'est pas censé arriver mais ça arrive: à fixeer
                     p_j = torch.sigmoid(p_j)
-                if p_j!=p_j:
+                    print('1')
+                if p_j!=p_j: # test pour ne pas avoir de p_j qui valent nan 
                     p_j=torch.tensor(0.5)
-                # train_set[i][j] = torch.tensor(float(np.random.binomial(1, p_j.detach().numpy()))) # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
+                    print('2')
                 train_set[i][j] = torch.bernoulli(p_j).item() # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
         y_train=torch.tensor([p_obj(s) for s in train_set], requires_grad=True)
         
@@ -107,6 +108,7 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
             q_theta_predit[j] = res
         # c'est bon on a les probas, on peut appliquer DKL
         loss = Kulback_Leibler(q_theta_predit, y_train)
+        # loss=loss_bis(q_theta_predit, y_train) #test avec une autre loss
         loss.backward()
         
         optimizer.step()
@@ -114,5 +116,10 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss.item()}')
            
+           
     return losses
 
+
+
+def loss_bis(y1, y2):
+    return torch.exp(torch.mean((y1-y2)**2))
