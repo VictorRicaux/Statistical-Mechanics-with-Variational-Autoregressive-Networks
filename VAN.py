@@ -24,6 +24,7 @@ class VAN(nn.Module):
         super(VAN, self).__init__() #initialisation obligatoire
         self.input_size = input_size
         self.activation = activation
+
         
 
         # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
@@ -46,18 +47,17 @@ class VAN(nn.Module):
         x = self.fc1(x)
         x = self.activation(x)
         # à cette ligne on a multiplié x par la matrice de masque (triangulaire inférieure), puis appliqué la fonction d'activation
-        # donc la première coordonnée de x vaut activation(0) (normal, s^_1 ne dépend de personne)
-        # il faut donc ajouter 0.5 à la première coordonnée pour montrer qu'elle vaut 0 et 1 avec proba 0.5
-        x=x.clone()
-        x[0] += 0.5 
+        # donc la première coordonnée de x vaut activation(0) =0.5 (normal, s^_1 ne dépend de personne)
+        
         return x
 
 
 
 def Kulback_Leibler(q,p): # p et q sont des listes de probas d'observation pour le même s
     # on n'a pas somme des p_i = 1  ni somme des q_i = 1 car on peut avoir plusieurs fois le même s ou à l'inverse ne pas les avoir tous
-    return  torch.sum(torch.log(q/p))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
-
+    # et c'est un problème
+    return torch.sum((q/torch.sum(q))*torch.log((q/torch.sum(q))/(p/torch.sum(p))))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
+    # return  torch.sum(torch.log(q/p))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
 
 def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
     losses = []
@@ -93,28 +93,43 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
                     p_j=torch.tensor(0.5)
                     print('2')
                 train_set[i][j] = torch.bernoulli(p_j).item() # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
+        
+        print(len(train_set), 'avant')
+        #retirer les doublons de train_set
+        train_set = torch.unique(train_set, dim=0)
+        print(len(train_set), 'après')
+        print(train_set)
         y_train=torch.tensor([p_obj(s) for s in train_set], requires_grad=True)
         
         # on a notre train set pour cette époque
 
-
         listes_de_probas_conditionelles=model(train_set) # on récupère les probas conditionelles, il faut les multiplier pour avoir les probas tout court
-
+        # print(listes_de_probas_conditionelles)
         q_theta_predit=torch.zeros(len(listes_de_probas_conditionelles))
         for j, proba_conditionelle in enumerate(listes_de_probas_conditionelles):
             res = 1.0
-            for i in proba_conditionelle:
-                res *= i
+            for i,  proba in  enumerate(proba_conditionelle):
+                res *= prob(proba_conditionelle[i], train_set[j][i])
+                if (prob(proba_conditionelle[i], train_set[j][i])<0):
+                    print('proba conditionelle', proba_conditionelle[i])
+                    print('train_set[j][i]', train_set[j][i])
+                
+
             q_theta_predit[j] = res
+            # print(res)
         # c'est bon on a les probas, on peut appliquer DKL
         loss = Kulback_Leibler(q_theta_predit, y_train)
+        
         # loss=loss_bis(q_theta_predit, y_train) #test avec une autre loss
         loss.backward()
-        
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)#conseillé par copilot, évite l'explosion du gradient qui conduit à des nan
+
         optimizer.step()
         losses.append(loss.item())
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss.item()}')
+            # for param in model.parameters():
+            #     print(param)
            
            
     return losses
@@ -122,4 +137,7 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
 
 
 def loss_bis(y1, y2):
-    return torch.exp(torch.mean((y1-y2)**2))
+    return torch.mean(torch.exp((y1-y2)**2)-1)
+
+def prob(s_hat, s):
+    return (s_hat**s)*(1-s_hat)**(1-s)
