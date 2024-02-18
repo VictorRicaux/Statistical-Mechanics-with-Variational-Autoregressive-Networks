@@ -1,6 +1,7 @@
 import torch 
 import torch.nn as nn
 import numpy as np
+import torch.nn.init as init
 
 
 
@@ -25,8 +26,6 @@ class VAN(nn.Module):
         self.input_size = input_size
         self.activation = activation
 
-        
-
         # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
         M = torch.zeros((input_size, input_size), dtype=torch.float)
         for i in range(input_size):
@@ -40,6 +39,8 @@ class VAN(nn.Module):
         self.fc1 = MaskedLinear(input_size, input_size, mask=M) 
         for param in self.parameters():
             param.requires_grad = True
+            init.constant_(param, 0)  # Initialize all parameters to 0
+
 
 
 
@@ -48,16 +49,13 @@ class VAN(nn.Module):
         x = self.activation(x)
         # à cette ligne on a multiplié x par la matrice de masque (triangulaire inférieure), puis appliqué la fonction d'activation
         # donc la première coordonnée de x vaut activation(0) =0.5 (normal, s^_1 ne dépend de personne)
-        
         return x
 
 
 
 def Kulback_Leibler(q,p): # p et q sont des listes de probas d'observation pour le même s
-    # on n'a pas somme des p_i = 1  ni somme des q_i = 1 car on peut avoir plusieurs fois le même s ou à l'inverse ne pas les avoir tous
-    # et c'est un problème
+    # on renormalise sur le support tiré
     return torch.sum((q/torch.sum(q))*torch.log((q/torch.sum(q))/(p/torch.sum(p))))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
-    # return  torch.sum(torch.log(q/p))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
 
 def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
     losses = []
@@ -66,12 +64,9 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     losses = []
 
-    # à cette étape, on a un train set, on peut entraîner le modèle
     for epoch in range(n_iter):
-        optimizer.zero_grad() # What is this step? IMPORTANT LINE
+        optimizer.zero_grad() # What is this step? IMPORTANT LINE, c'est la prof qui l'a dit
 
-
-        
         # il faut tirer un train_set grâce au modèle pour s'entraîner dessus
         train_set=torch.zeros((train_size, model.input_size))
         for i in range(train_size):
@@ -81,25 +76,23 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
             # la deuxième coordonnée de y est p(s2|s1), donc on tire une bernoulli de paramètre p(s2|s1)
             # puis on recommence !
             # on fait ça train_size fois
-            train_set[i][0]=torch.bernoulli(torch.tensor(0.5).detach())
+            train_set[i][0]=torch.bernoulli(torch.tensor(0.5).detach()) # on met une bernoulli de 0.5 sur la première valeur
 
-            for j in range(1, model.input_size):
+            for j in range(1, model.input_size): # on parcourt tout le spin 
                 y_pred=model(train_set[i])
                 p_j = y_pred[j] # c'est p(s_j|s_{i<j})
-                if p_j > 1 or p_j < 0: # c'est pas censé arriver mais ça arrive: à fixeer
+                if p_j > 1 or p_j < 0: # c'est pas censé arriver 
                     p_j = torch.sigmoid(p_j)
-                    print('1')
+                    print('Proba impossible ')
                 if p_j!=p_j: # test pour ne pas avoir de p_j qui valent nan 
                     p_j=torch.tensor(0.5)
-                    print('2')
+                    print('proba = Nan ! ')
                 train_set[i][j] = torch.bernoulli(p_j).item() # on tire une bernoulli de paramètre p(s_j|s_{i<j}) pour la j-ème variable
         
-        print(len(train_set), 'avant')
-        #retirer les doublons de train_set
+        #retirer les doublons de train_set pour pouvoir calculer DKL sur le support des spins tirés
         train_set = torch.unique(train_set, dim=0)
-        print(len(train_set), 'après')
-        print(train_set)
-        y_train=torch.tensor([p_obj(s) for s in train_set], requires_grad=True)
+
+        y_train=torch.tensor([p_obj(s) for s in train_set], requires_grad=True) # les p(s) sur les s_i tirés
         
         # on a notre train set pour cette époque
 
@@ -110,34 +103,35 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
             res = 1.0
             for i,  proba in  enumerate(proba_conditionelle):
                 res *= prob(proba_conditionelle[i], train_set[j][i])
-                if (prob(proba_conditionelle[i], train_set[j][i])<0):
-                    print('proba conditionelle', proba_conditionelle[i])
-                    print('train_set[j][i]', train_set[j][i])
                 
 
             q_theta_predit[j] = res
             # print(res)
         # c'est bon on a les probas, on peut appliquer DKL
+    
         loss = Kulback_Leibler(q_theta_predit, y_train)
-        
-        # loss=loss_bis(q_theta_predit, y_train) #test avec une autre loss
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)#conseillé par copilot, évite l'explosion du gradient qui conduit à des nan
-
         optimizer.step()
         losses.append(loss.item())
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss.item()}')
-            # for param in model.parameters():
-            #     print(param)
+            for param in model.parameters():
+                print(param)
            
            
     return losses
 
 
 
-def loss_bis(y1, y2):
-    return torch.mean(torch.exp((y1-y2)**2)-1)
 
-def prob(s_hat, s):
+def prob(s_hat, s): # fonction intermdédiaire utilisée dans train
     return (s_hat**s)*(1-s_hat)**(1-s)
+
+
+def calculer_proba(spin, model): # fonction qui à partir d'un état de spin et d'un modèle renvoie la proba de voir ce spin d'après le modèle (q_theta)
+    res=1
+    probas=(model(spin)).detach().numpy()
+    for i in range(len(spin)):
+        res*=prob(probas[i], spin[i].detach().numpy())
+    return res
