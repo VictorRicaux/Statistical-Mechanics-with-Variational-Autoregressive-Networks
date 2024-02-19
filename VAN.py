@@ -116,8 +116,8 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
         losses.append(loss.item())
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss.item()}')
-            for param in model.parameters():
-                print(param)
+            # for param in model.parameters():
+            #     print(param)
            
            
     return losses
