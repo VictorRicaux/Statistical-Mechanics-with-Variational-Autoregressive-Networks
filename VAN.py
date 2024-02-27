@@ -65,6 +65,7 @@ def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):
     losses = []
 
     for epoch in range(n_iter):
+        print(epoch)
         optimizer.zero_grad() # What is this step? IMPORTANT LINE, c'est la prof qui l'a dit
 
         # il faut tirer un train_set grâce au modèle pour s'entraîner dessus
