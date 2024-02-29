@@ -31,18 +31,12 @@ class VAN(nn.Module):
         self.activation = activation
 
         # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
-        M = torch.zeros((input_size, input_size), dtype=torch.float)
-        for i in range(input_size):
-            for j in range(i, input_size):
-                M[i][j] = 0.0
-        for i in range(1, input_size):
-            for j in range(i):
-                M[i][j] = 1.0
+        M = torch.triu(torch.ones((input_size,input_size), dtype=torch.float),diagonal=1).t()
 
         self.fc1 = MaskedLinear(input_size, input_size, mask=M) 
         for param in self.parameters():
             param.requires_grad = True
-            init.constant_(param, 0)  # Initialize all parameters to 0
+            init.uniform_(param, -1, 1)  # Initialize parameters randomly between -1 and 1
 
     def forward(self, x):
         '''
@@ -73,7 +67,7 @@ class VAN(nn.Module):
         '''
         Output: n_samples spins sampled from the model q_theta(s)
         '''
-        spins =  - torch.ones((n_samples, self.input_size))
+        spins = - torch.ones((n_samples, self.input_size))
         for spin_site in range(self.input_size):
             params_Bernoulli = self(spins)
             spins_at_site = Bernoulli(params_Bernoulli[:, spin_site]).sample()
