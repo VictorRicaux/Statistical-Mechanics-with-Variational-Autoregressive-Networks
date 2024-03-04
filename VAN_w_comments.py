@@ -10,7 +10,7 @@ Elles doivent manipuler des torch.tensor de dimension (batch_size, spin_size).
 '''
 
 def prob(s_hat, s): # fonction intermdédiaire utilisée dans train
-    ''''
+    '''
     p(s ; s_hat): loi de Bernoulli de paramètre s_hat
     '''
     return (s_hat**s)*(1-s_hat)**(1-s)

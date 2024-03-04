@@ -130,3 +130,16 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
     return losses
 
 
+class VAN_2D(nn.Module):
+    def __init__(self, input_size, activation=torch.sigmoid):
+        super(VAN, self).__init__() #initialisation obligatoire
+        self.input_size = input_size
+        self.activation = activation
+
+        # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
+        M = torch.triu(torch.ones((input_size,input_size), dtype=torch.float),diagonal=1).t()
+
+        self.fc1 = MaskedLinear(input_size, input_size, mask=M) 
+        for param in self.parameters():
+            param.requires_grad = True
+            init.uniform_(param, -1, 1)  # Initialize parameters randomly between -1 and 1
