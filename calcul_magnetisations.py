@@ -45,8 +45,10 @@ def log_prob_target_energie(spins, beta):
 taille=100
 betas = np.linspace(0.5, 6.5, 11)
 for beta in betas: 
+    
     magnetisations_list=[]
     for i in range(15): 
+        print(beta, i)
         mymodel1 = VAN(taille)
         losses = train(mymodel1, lambda x:  log_prob_target_energie(x, beta), batch_size=200, n_iter=1000, lr=0.01)
         mysample=mymodel1.sample(1000)
