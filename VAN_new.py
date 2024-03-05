@@ -95,6 +95,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
     '''
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     losses = []
+    beta=1
 
     for epoch in range(n_iter):
         optimizer.zero_grad() # What is this step? IMPORTANT LINE, c'est la prof qui l'a dit
@@ -110,8 +111,10 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         Mais l'annealing sera surement utile pour les distributions multi-modales.
         '''
         # 0.998**9000 ~ 1e-8
-        # beta = beta * (1 - beta_anneal**step)
-        beta = 1
+        # beta = beta * (1 + 0.998**9000)
+        
+        
+
 
         with torch.no_grad():
             energy = - log_prob_target(sample)
