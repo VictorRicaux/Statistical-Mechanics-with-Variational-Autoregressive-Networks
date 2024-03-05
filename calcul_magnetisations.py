@@ -45,7 +45,6 @@ def log_prob_target_energie(spins, beta):
 taille=100
 betas = np.linspace(0.5, 6.5, 11)
 for beta in betas: 
-    
     magnetisations_list=[]
     for i in range(15): 
         print(beta, i)
