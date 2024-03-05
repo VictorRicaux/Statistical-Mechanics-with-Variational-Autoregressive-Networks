@@ -88,14 +88,14 @@ def Kullback_Leibler(model, log_prob_target, spins):
     return (log_prob_model_value - log_pobj).mean()
 
     
-def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_grad=True, beta_obj=0.4):
+def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_grad=True):
     '''
     Train the model to approximate the target distribution p_obj.
 
     '''
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     losses = []
-
+    beta=1
 
     for epoch in range(n_iter):
         optimizer.zero_grad() # What is this step? IMPORTANT LINE, c'est la prof qui l'a dit
@@ -111,11 +111,9 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         Mais l'annealing sera surement utile pour les distributions multi-modales.
         '''
         # 0.998**9000 ~ 1e-8
-        # beta = beta * (1 + 0.998**9000)
-        # if beta<beta_obj:
-        #     beta = beta * (1.005)
-        beta=1
-
+        beta = beta * (1 + 0.998**9000)
+        
+        
 
 
         with torch.no_grad():
