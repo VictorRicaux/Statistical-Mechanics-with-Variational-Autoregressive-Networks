@@ -56,7 +56,7 @@ class VAN(nn.Module):
 def Kulback_Leibler(q,p): # p et q sont des listes de probas d'observation pour le même s
     # on renormalise sur le support tiré
     # return (torch.log(q)- torch.log(p)).mean()
-    return (torch.sum((q/torch.sum(q))*torch.log((q/torch.sum(q))/(p/torch.sum(p)))))  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
+    return ((torch.sum((q/torch.sum(q))*torch.log((q/torch.sum(q))/(p/torch.sum(p))))) )  # c'est une espérance empirique c'est pour ça qu'on n'a pas qi en facteur
 
 
 def train(model, p_obj,  n_iter=100, lr=1e-2, train_size=100):

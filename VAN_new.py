@@ -143,3 +143,5 @@ class VAN_2D(nn.Module):
         for param in self.parameters():
             param.requires_grad = True
             init.uniform_(param, -1, 1)  # Initialize parameters randomly between -1 and 1
+
+
