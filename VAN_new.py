@@ -148,3 +148,7 @@ class VAN_2D(nn.Module):
             init.uniform_(param, -1, 1)  # Initialize parameters randomly between -1 and 1
 
 
+
+            
+
+
