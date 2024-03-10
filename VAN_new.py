@@ -69,7 +69,7 @@ class VAN(nn.Module):
         '''
         spins = - torch.ones((n_samples, self.input_size))
         for spin_site in range(self.input_size):
-            params_Bernoulli = self(spins)
+            params_Bernoulli = self(spins)                
             spins_at_site = Bernoulli(params_Bernoulli[:, spin_site]).sample()
             spins[:, spin_site] = spins_at_site
         return spins
@@ -102,6 +102,8 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
 
         with torch.no_grad():
             sample =  model.sample(batch_size)
+            
+
         assert not sample.requires_grad
 
         log_prob = model.log_prob_of_spins(sample)
@@ -129,6 +131,8 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         optimizer.step()
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss_reinforce.item()}')
+            for name, param in model.named_parameters():
+                print(name, param)
            
     return losses
 
