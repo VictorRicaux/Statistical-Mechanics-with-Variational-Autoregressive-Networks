@@ -131,8 +131,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         optimizer.step()
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss_reinforce.item()}')
-            for name, param in model.named_parameters():
-                print(name, param)
+           
            
     return losses
 
