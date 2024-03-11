@@ -114,6 +114,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         '''
         # 0.998**9000 ~ 1e-8
         beta = beta * (1 + 0.998**9000)
+
         
         
 
