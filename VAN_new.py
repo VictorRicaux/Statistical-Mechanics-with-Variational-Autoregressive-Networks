@@ -115,6 +115,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         '''
         # 0.998**9000 ~ 1e-8
         beta = beta * (1 + 0.998**9000)
+
         
         
         with torch.no_grad():
@@ -126,7 +127,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         loss_reinforce.backward()
         losses.append(loss_reinforce.item())
         if clip_grad:
-            nn.utils.clip_grad_norm_(model.parameters(), clip_grad)
+            nn.utils.clip_grad_norm_(model.parameters(), 1)
         optimizer.step()
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss_reinforce.item()}')
