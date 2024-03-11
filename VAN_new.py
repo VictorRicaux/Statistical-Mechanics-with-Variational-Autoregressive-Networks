@@ -54,6 +54,7 @@ class VAN(nn.Module):
         Fonction vectorisée sur un batch
         '''
         params_Bernoulli = self(spins)
+      
         probs_per_site = params_Bernoulli * spins + (1 - params_Bernoulli) * (1 - spins)
         return probs_per_site.prod(dim=1)
     
@@ -116,8 +117,6 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         beta = beta * (1 + 0.998**9000)
         
         
-
-
         with torch.no_grad():
             energy = - log_prob_target(sample)
             loss = log_prob + beta * energy
