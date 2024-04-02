@@ -54,6 +54,7 @@ class VAN(nn.Module):
         Fonction vectorisée sur un batch
         '''
         params_Bernoulli = self(spins)
+      
         probs_per_site = params_Bernoulli * spins + (1 - params_Bernoulli) * (1 - spins)
         return probs_per_site.prod(dim=1)
     
@@ -113,12 +114,10 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         Mais l'annealing sera surement utile pour les distributions multi-modales.
         '''
         # 0.998**9000 ~ 1e-8
-        beta = beta * (1 + 0.998**9000)
+        # beta = beta * (1 + 0.998**9000)
 
         
         
-
-
         with torch.no_grad():
             energy = - log_prob_target(sample)
             loss = log_prob + beta * energy
@@ -128,7 +127,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
         loss_reinforce.backward()
         losses.append(loss_reinforce.item())
         if clip_grad:
-            nn.utils.clip_grad_norm_(model.parameters(), 1)
+            nn.utils.clip_grad_norm_(model.parameters(), 5*1e-3)
         optimizer.step()
         if epoch % (n_iter/10) == 0:
             print(f'Epoch {epoch}: {loss_reinforce.item()}')
