@@ -4,6 +4,7 @@ import numpy as np
 import torch.nn.init as init
 from torch.distributions import Bernoulli
 
+# file to use a VAN (Variable Auto-regressive Network) to sample from a 2D Ising model
 
 def prob(s_hat, s):
     ''''

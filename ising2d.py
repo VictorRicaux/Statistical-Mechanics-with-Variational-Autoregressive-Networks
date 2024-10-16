@@ -111,6 +111,7 @@ def sample_magnetisations_with_annealing(betas=[0.05, 0.1, 0.145, 0.19, 0.235, 0
     '''
     Function that computes a probability distribution of the spins and then samples from it, with annealing. 
     It plots the results and saves both the plots and the data. 
+    
     '''
     mymodel1 = VAN(taille)
     racine=int(np.sqrt(taille))
