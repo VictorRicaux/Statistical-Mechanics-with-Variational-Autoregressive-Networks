@@ -11,9 +11,9 @@ def prob(s_hat, s):
     '''
     return (s_hat**s)*(1-s_hat)**(1-s)
 
-# class MaskedLinear: Couche de neurones qui 
-# permet de mettre un masque pour que les sorties d'indice j ne dépendent 
-# que des entrées d'indice i avec i<=j
+# class MaskedLinear: neuron layer that 
+# enables to put a mask on the outputs on the entries of j  index only depending on entries of i index with i <= j
+
 class MaskedLinear(nn.Linear):
     def __init__(self, in_features, out_features, mask, bias=True):
         super(MaskedLinear, self).__init__(in_features, out_features, bias)
@@ -29,8 +29,7 @@ class VAN(nn.Module):
         super(VAN, self).__init__() #initialisation obligatoire
         self.input_size = input_size
         self.activation = activation
-
-        # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
+        # mask matrix : only 0 on and above the diagonal and 1 a=under
         M = torch.triu(torch.ones((input_size,input_size), dtype=torch.float),diagonal=1).t()
 
         self.fc1 = MaskedLinear(input_size, input_size, mask=M) 
@@ -44,8 +43,8 @@ class VAN(nn.Module):
         '''
         x = self.fc1(x)
         x = self.activation(x)
-        # à cette ligne on a multiplié x par la matrice de masque (triangulaire inférieure), puis appliqué la fonction d'activation
-        # donc la première coordonnée de x vaut activation(0) =0.5 (normal, s^_1 ne dépend de personne)
+        # on this line, we multiplied x by the mask matrix (lower triangular), then applied the activation function
+        # so the first coordinate of x is activation(0) =0.5 (normal, s^_1 does not depend on anyone)
         return x
     
     
@@ -99,7 +98,7 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
     beta=1
 
     for epoch in range(n_iter):
-        optimizer.zero_grad() # What is this step? IMPORTANT LINE, c'est la prof qui l'a dit
+        optimizer.zero_grad() # important 
 
         with torch.no_grad():
             sample =  model.sample(batch_size)
@@ -138,11 +137,10 @@ def train(model, log_prob_target,  n_iter=100, lr=1e-2, batch_size=100, clip_gra
 
 class VAN_2D(nn.Module):
     def __init__(self, input_size, activation=torch.sigmoid):
-        super(VAN, self).__init__() #initialisation obligatoire
+        super(VAN, self).__init__() # mandatory initialization
         self.input_size = input_size
         self.activation = activation
 
-        # Création de la matrice de masque : que des 0 sur et au dessus de la diagonale et que des 1 dessous
         M = torch.triu(torch.ones((input_size,input_size), dtype=torch.float),diagonal=1).t()
 
         self.fc1 = MaskedLinear(input_size, input_size, mask=M) 

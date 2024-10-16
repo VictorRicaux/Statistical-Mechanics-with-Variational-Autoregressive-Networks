@@ -12,7 +12,7 @@ def get_column(matrix, i):
 
 
 
-def energie1D(spin): 
+def energie1D(spin): #  get the energy of a 1D spin configuration
     spin_copie=spin.clone()
     spin_copie[spin_copie==0]=-1
     spin_copie_1 = torch.roll(spin_copie, -1)
@@ -21,7 +21,7 @@ def energie1D(spin):
     return energie
 
 
-def energie2D(lattice):
+def energie2D(lattice): # get the 2D energy of the spin 
     energie = 0 
     for i in range(len(lattice)):
         energie+=energie1D(lattice[0])
