@@ -9,3 +9,5 @@ The ising2d.py file approximates the probability distribution of the ising probl
 It saves samples of magnetization and can plot the evolution of the magnetization of a given grid of spins with temperature. 
 It can plot those graphs with and without annealing. 
 
+This code comes form a project at Ecole Polytechnique that aims to reproduce the results from ·	Reproducing the results of Wu, Dian, Lei Wang, and Pan Zhang. "Solving statistical mechanics using variational autoregressive networks." Physical review letters 122.8
+
